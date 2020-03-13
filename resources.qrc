@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/plugins/DN_Corrector" >
+        <file>icon.png</file>
+        <file>logo.png</file>
+    </qresource>
+</RCC>
