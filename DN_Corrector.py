@@ -452,8 +452,8 @@ class DN_Corrector(object):
                 MTAerAttrIdx = self.getAttributeIndex(aereaMTLayer, 'RING')
                 MTAerAttrIdxConnect = self.getAttributeIndex(aereaMTLayer, 'MV_GROUP')
                 for feat in aereaMTLayer.getFeatures():
-                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdx, 0)
-                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdxConnect, 0)
+                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdx, 1)
+                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdxConnect, 1)
                     #try:
                     
                     geom = feat.geometry()
@@ -487,7 +487,7 @@ class DN_Corrector(object):
                 cargaMTLayer.startEditing()
                 MTCargaAttrIdxConnect = self.getAttributeIndex(cargaMTLayer, 'MV_GROUP')
                 for feat in cargaMTLayer.getFeatures():
-                    done = cargaMTLayer.changeAttributeValue(feat.id(), MTCargaAttrIdxConnect, 0)
+                    done = cargaMTLayer.changeAttributeValue(feat.id(), MTCargaAttrIdxConnect, 1)
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
                     y = int(point[1]/tolerance)
@@ -508,7 +508,7 @@ class DN_Corrector(object):
                 TrafLayerEditingMode = True
                 trafoAttrIdxConnect = self.getAttributeIndex(trafoLayer, 'MV_GROUP')
                 for feat in trafoLayer.getFeatures():
-                    done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdxConnect, 0)
+                    done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdxConnect, 1)
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
                     y = int(point[1]/tolerance)
@@ -646,7 +646,7 @@ class DN_Corrector(object):
             trafoLayer.beginEditCommand("Update group attribute")
             trafoAttrIdx = self.getAttributeIndex(trafoLayer, 'LV_GROUP')
             for feat in trafoLayer.getFeatures():
-                done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdx, 0)
+                done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdx, 1)
                 try:
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
@@ -671,8 +671,8 @@ class DN_Corrector(object):
             groupAttrIdx = self.getAttributeIndex(BTLayer, 'LV_GROUP')
             ringAttrIdx = self.getAttributeIndex(BTLayer, 'RING')
             for feat in BTLayer.getFeatures():
-                done = BTLayer.changeAttributeValue(feat.id(), groupAttrIdx, 0)
-                done = BTLayer.changeAttributeValue(feat.id(), ringAttrIdx, 0)
+                done = BTLayer.changeAttributeValue(feat.id(), groupAttrIdx, 1)
+                done = BTLayer.changeAttributeValue(feat.id(), ringAttrIdx, 1)
                 try:
                     geom = feat.geometry()
                     line = self.MultiStringToMatrix(geom)
@@ -700,8 +700,8 @@ class DN_Corrector(object):
             groupAttrIdx = self.getAttributeIndex(acomLayer, 'LV_GROUP')
             ringAttrIdx = self.getAttributeIndex(acomLayer, 'RING')
             for feat in acomLayer.getFeatures():
-                done = acomLayer.changeAttributeValue(feat.id(), groupAttrIdx, 0)
-                done = acomLayer.changeAttributeValue(feat.id(), ringAttrIdx, 0)
+                done = acomLayer.changeAttributeValue(feat.id(), groupAttrIdx, 1)
+                done = acomLayer.changeAttributeValue(feat.id(), ringAttrIdx, 1)
                 try:
                     geom = feat.geometry()
                     line = self.MultiStringToMatrix(geom)
@@ -728,7 +728,7 @@ class DN_Corrector(object):
             cargaLayer.beginEditCommand("Update group attribute")
             groupAttrIdx = self.getAttributeIndex(cargaLayer, 'LV_GROUP')
             for feat in cargaLayer.getFeatures():
-                done = cargaLayer.changeAttributeValue(feat.id(), groupAttrIdx, 0)
+                done = cargaLayer.changeAttributeValue(feat.id(), groupAttrIdx, 1)
                 try:
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
@@ -978,9 +978,6 @@ class DN_Corrector(object):
         line_BT_Layers = inputLayers["BT_lines"]
         acomet_Layers = inputLayers["acometida"]
         carga_BT_Layers = inputLayers["carga_BT"]
-        
-        print( "inputLayers = ", inputLayers )
-        print( "carga_BT_Layers = ", carga_BT_Layers )
         
         fid_comp_aerea, toReport, GrafoBT, NOGEOMETRY = self.inconsistencias_BT()
         trafoDesc, linesBTDesc, ACODesc, loadDesc, trafParalelo, BT_lines_group, aco_group = toReport
