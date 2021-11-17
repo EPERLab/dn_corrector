@@ -70,6 +70,7 @@ class DN_Corrector(object):
         """
         # Save reference to the QGIS interface
         self.iface = iface
+        
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -103,6 +104,9 @@ class DN_Corrector(object):
         self.dlg.pushButton_lines.clicked.connect(self.lineConec)
         self.dlg.pushButton_split.clicked.connect(self.split_iteration)
         self.dlg.button_box.helpRequested.connect(self.show_help)
+        self.output_folder = ""
+        
+        self.dlg.pushButton_output_folder.clicked.connect(self.select_output_folder)
         
         self.tolerance = 0.1
     # noinspection PyMethodMayBeStatic
@@ -452,8 +456,8 @@ class DN_Corrector(object):
                 MTAerAttrIdx = self.getAttributeIndex(aereaMTLayer, 'RING')
                 MTAerAttrIdxConnect = self.getAttributeIndex(aereaMTLayer, 'MV_GROUP')
                 for feat in aereaMTLayer.getFeatures():
-                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdx, 1)
-                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdxConnect, 1)
+                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdx, -1)
+                    done = aereaMTLayer.changeAttributeValue(feat.id(), MTAerAttrIdxConnect, -1)
                     #try:
                     
                     geom = feat.geometry()
@@ -464,11 +468,12 @@ class DN_Corrector(object):
                         return
            
                     
-                    n= len(line)      
-                                        
+                    n= len(line)
                     
                     if self.dlg.checkBox_intNodes.isChecked(): 
                         for i in range(len(line)-1):
+                            if int(line[i][0]/tolerance) == int(line[i+1][0]/tolerance) and int(line[i][1]/tolerance) == int(line[i+1][1]/tolerance):
+                                continue
                             GrafoMT.add_edges_from([((int(line[i][0]/tolerance), int(line[i][1]/tolerance)), (int(line[i+1][0]/tolerance), int(line[i+1][1]/tolerance)),
                             {"attIndexGroup":MTAerAttrIdxConnect, "ringAttIndex":MTAerAttrIdx, 'fid': feat.id(), 'element': 'lineMT', "FEAT":feat, "idLAYER": indexLayer})])     # first scale by tolerance, then convert to int.  Before doing this, there were problems with floats not equating, thus creating disconnects that weren't there.
                             GrafoLMT.add_edges_from([((int(line[i][0]/tolerance), int(line[i][1]/tolerance)), (int(line[i+1][0]/tolerance), int(line[i+1][1]/tolerance)),
@@ -487,7 +492,7 @@ class DN_Corrector(object):
                 cargaMTLayer.startEditing()
                 MTCargaAttrIdxConnect = self.getAttributeIndex(cargaMTLayer, 'MV_GROUP')
                 for feat in cargaMTLayer.getFeatures():
-                    done = cargaMTLayer.changeAttributeValue(feat.id(), MTCargaAttrIdxConnect, 1)
+                    done = cargaMTLayer.changeAttributeValue(feat.id(), MTCargaAttrIdxConnect, -1)
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
                     y = int(point[1]/tolerance)
@@ -508,7 +513,7 @@ class DN_Corrector(object):
                 TrafLayerEditingMode = True
                 trafoAttrIdxConnect = self.getAttributeIndex(trafoLayer, 'MV_GROUP')
                 for feat in trafoLayer.getFeatures():
-                    done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdxConnect, 1)
+                    done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdxConnect, -1)
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
                     y = int(point[1]/tolerance)
@@ -620,11 +625,20 @@ class DN_Corrector(object):
             else:
                 repLoad = '\nNo existen cargas de media tension desconectadas.'
                 
-            msg = message+repLines+repTraf+repLoad
+            msg = message + repLines + repTraf + repLoad
+            filename_report = self.output_folder + "/Inconsistencias_MT.txt"
+            if self.output_folder != "":
+                with open(filename_report, 'w') as file_report:
+                    file_report.write(msg)
             QMessageBox.warning(None, QCoreApplication.translate('dialog', u'Registro de incosistencias'), msg)
             QgsApplication.instance().messageLog().logMessage(msg, tag="REGISTRO DE INCONSISTENCIAS",level=Qgis.MessageLevel(1))
             self.iface.messageBar().pushMessage("DN_Corrector", QCoreApplication.translate('dialog', u"Se ha analizado la red de media tension, vea los mensajes de registro para ver los errores") )
             
+    #Función que permite seleccionar la carpeta de salida
+    def select_output_folder(self):
+        self.output_folder = QFileDialog.getExistingDirectory(self.dlg, QCoreApplication.translate('dialog',
+                                                                                              "Seleccione carpeta de salida"), "")
+        self.dlg.lineEdit_dirOutput.setText(self.output_folder)
     def inconsistencias_BT(self):
         inputLayers = self.readerLayers()
         trafo_Layers = inputLayers["trafos"]
@@ -646,7 +660,7 @@ class DN_Corrector(object):
             trafoLayer.beginEditCommand("Update group attribute")
             trafoAttrIdx = self.getAttributeIndex(trafoLayer, 'LV_GROUP')
             for feat in trafoLayer.getFeatures():
-                done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdx, 1)
+                done = trafoLayer.changeAttributeValue(feat.id(), trafoAttrIdx, 0)
                 try:
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
@@ -656,7 +670,7 @@ class DN_Corrector(object):
                     GrafoBT.nodes[p].update( {'fid': feat.id(), 'element': 'trafo', "FEAT":feat,"idLAYER": indexLayer, "attIndexGroup":trafoAttrIdx} )
                 except:
                     Geom_Idx = self.getAttributeIndex(trafoLayer, 'NO_GEOMETRY')
-                    done = trafoLayer.changeAttributeValue(feat.id(), Geom_Idx, 1)
+                    done = trafoLayer.changeAttributeValue(feat.id(), Geom_Idx, 0)
                     NOGEOMETRY = True
                     
 
@@ -671,8 +685,8 @@ class DN_Corrector(object):
             groupAttrIdx = self.getAttributeIndex(BTLayer, 'LV_GROUP')
             ringAttrIdx = self.getAttributeIndex(BTLayer, 'RING')
             for feat in BTLayer.getFeatures():
-                done = BTLayer.changeAttributeValue(feat.id(), groupAttrIdx, 1)
-                done = BTLayer.changeAttributeValue(feat.id(), ringAttrIdx, 1)
+                done = BTLayer.changeAttributeValue(feat.id(), groupAttrIdx, 0)
+                done = BTLayer.changeAttributeValue(feat.id(), ringAttrIdx, 0)
                 try:
                     geom = feat.geometry()
                     line = self.MultiStringToMatrix(geom)
@@ -680,6 +694,8 @@ class DN_Corrector(object):
                     n= len(line)
                     if self.dlg.checkBox_intNodes.isChecked(): 
                         for i in range(len(line)-1):
+                            if int(line[i][0]/tolerance) == int(line[i+1][0]/tolerance) and int(line[i][1]/tolerance) == int(line[i+1][1]/tolerance):
+                                continue
                             GrafoBT.add_edges_from([((int(line[i][0]/tolerance), int(line[i][1]/tolerance)), (int(line[i+1][0]/tolerance), int(line[i+1][1]/tolerance)),
                             {"attIndexGroup":groupAttrIdx, "ringAttIndex":ringAttrIdx, 'fid': feat.id(), 'element': 'BTLine', "FEAT":feat, "idLAYER": indexLayer})])     # first scale by tolerance, then convert to int.  Before doing this, there were problems with floats not equating, thus creating disconnects that weren't there.
                     else:
@@ -687,7 +703,7 @@ class DN_Corrector(object):
                         {"attIndexGroup":groupAttrIdx, "ringAttIndex":ringAttrIdx, 'fid': feat.id(), 'element': 'BTLine', "FEAT":feat, "idLAYER": indexLayer})])     # first scale by tolerance, then convert to int.  Before doing this, there were problems with floats not equating, thus creating disconnects that weren't there.
                 except:
                     Geom_Idx = self.getAttributeIndex(BTLayer, 'NO_GEOMETRY')
-                    done = BTLayer.changeAttributeValue(feat.id(), Geom_Idx, 1)
+                    done = BTLayer.changeAttributeValue(feat.id(), Geom_Idx, 0)
                     NOGEOMETRY = True
             BTLayer.endEditCommand()
             indexLayer +=1
@@ -700,8 +716,8 @@ class DN_Corrector(object):
             groupAttrIdx = self.getAttributeIndex(acomLayer, 'LV_GROUP')
             ringAttrIdx = self.getAttributeIndex(acomLayer, 'RING')
             for feat in acomLayer.getFeatures():
-                done = acomLayer.changeAttributeValue(feat.id(), groupAttrIdx, 1)
-                done = acomLayer.changeAttributeValue(feat.id(), ringAttrIdx, 1)
+                done = acomLayer.changeAttributeValue(feat.id(), groupAttrIdx, 0)
+                done = acomLayer.changeAttributeValue(feat.id(), ringAttrIdx, 0)
                 try:
                     geom = feat.geometry()
                     line = self.MultiStringToMatrix(geom)
@@ -709,6 +725,8 @@ class DN_Corrector(object):
                     n= len(line)
                     if self.dlg.checkBox_intNodes.isChecked(): 
                         for i in range(len(line)-1):
+                            if int(line[i][0]/tolerance) == int(line[i+1][0]/tolerance) and int(line[i][1]/tolerance) == int(line[i+1][1]/tolerance):
+                                continue
                             GrafoBT.add_edges_from([((int(line[i][0]/tolerance), int(line[i][1]/tolerance)), (int(line[i+1][0]/tolerance), int(line[i+1][1]/tolerance)),
                             {"attIndexGroup":groupAttrIdx, "ringAttIndex":ringAttrIdx, 'fid': feat.id(), 'element': 'acom', "FEAT":feat, "idLAYER": indexLayer})])     # first scale by tolerance, then convert to int.  Before doing this, there were problems with floats not equating, thus creating disconnects that weren't there.
                     else:
@@ -716,7 +734,7 @@ class DN_Corrector(object):
                         {"attIndexGroup":groupAttrIdx, "ringAttIndex":ringAttrIdx, 'fid': feat.id(), 'element': 'acom', "FEAT":feat, "idLAYER": indexLayer})])     # first scale by tolerance, then convert to int.  Before doing this, there were problems with floats not equating, thus creating disconnects that weren't there.
                 except:
                     Geom_Idx = self.getAttributeIndex(acomLayer, 'NO_GEOMETRY')
-                    done = acomLayer.changeAttributeValue(feat.id(), Geom_Idx, 1)
+                    done = acomLayer.changeAttributeValue(feat.id(), Geom_Idx, 0)
                     NOGEOMETRY = True
             acomLayer.endEditCommand()
             indexLayer +=1
@@ -728,7 +746,7 @@ class DN_Corrector(object):
             cargaLayer.beginEditCommand("Update group attribute")
             groupAttrIdx = self.getAttributeIndex(cargaLayer, 'LV_GROUP')
             for feat in cargaLayer.getFeatures():
-                done = cargaLayer.changeAttributeValue(feat.id(), groupAttrIdx, 1)
+                done = cargaLayer.changeAttributeValue(feat.id(), groupAttrIdx, 0)
                 try:
                     point = feat.geometry().asPoint()
                     x = int(point[0]/tolerance)
@@ -738,7 +756,7 @@ class DN_Corrector(object):
                     GrafoBT.nodes[p].update( {"attIndexGroup":groupAttrIdx, 'fid': feat.id(), 'element': 'carga', "FEAT":feat, "idLAYER": indexLayer} )
                 except:
                     Geom_Idx = self.getAttributeIndex(cargaLayer, 'NO_GEOMETRY')
-                    done = cargaLayer.changeAttributeValue(feat.id(), Geom_Idx, 1)
+                    done = cargaLayer.changeAttributeValue(feat.id(), Geom_Idx, 0)
                     NOGEOMETRY = True
             cargaLayer.endEditCommand()
             indexLayer +=1
@@ -828,6 +846,7 @@ class DN_Corrector(object):
         toReport = [trafoDesc, BTDesc, acoDesc,cargaDesc, trafParalelo, BT_lines_group, aco_group] 
                     
         return lines_BT_Islands, toReport, GrafoBT, NOGEOMETRY
+    
     def reporteInconsis(self):
         starTime = time.time()
         inputLayers = self.readerLayers()
@@ -927,7 +946,13 @@ class DN_Corrector(object):
             repGeome = '\nExisten elementos en el SIG sin geometria, estos elementos tienen un 1 en el atributo NO_GEOMETRY.'
         else:
             repGeome=''
-        message =  message+repParalel+repTraf+repLines+repAco+repLoad+repGeome
+        message +=  repParalel + repTraf + repLines + repAco + repLoad + repGeome
+        
+        filename_report = self.output_folder + "/Inconsistencias_BT.txt"
+        if self.output_folder != "":
+            with open(filename_report, 'w') as file_report:
+                    file_report.write(message)
+
         QgsApplication.instance().messageLog().logMessage(message, tag="REGISTRO DE INCONSISTENCIAS",level=Qgis.MessageLevel(1))
         QMessageBox.warning(None, QCoreApplication.translate('dialog', u'REGISTRO DE INCONSISTENCIAS'), message)
         
@@ -1212,16 +1237,16 @@ class DN_Corrector(object):
                                 else:
                                     geom = seg.geometry()
                                     lineSeg = self.MultiStringToMatrix(geom)
-                                    
+                                    print(lineSeg)
                                     n = len(lineSeg)
                                     startPointB = (round(lineSeg[0][0],4), round(lineSeg[0][1],4))
                                     endPointB = (round(lineSeg[n-1][0],4), round(lineSeg[n-1][1],4))
                                     if (startPointB == startPointA) or (endPointB == startPointA) or (startPointB== endPointA) or (endPointB == endPointA):  #No necesita cortar
-                                    	inter = -1
-                                    
-                                
+                                        inter = -1
+                                        print(21)
                                     else:        
                                         for i in range(len(lineSeg)-1):#entra a cada segmento de la polilinea 'SEG'
+                                            print(lineSeg)
                                             vert1b = i 
                                             vert2b = i+1
                                             p1b = (lineSeg[vert1b][0],lineSeg[vert1b][1])
@@ -1230,9 +1255,11 @@ class DN_Corrector(object):
                                                 
                                             if self.pendientesIguales(La, Lb):
                                                 inter = -1
+                                                print(22)
                                             else:
                                                 inter = self.intersection(La, Lb) # Si intersecan devuelve el punto de interseccion, sino -1
-                                                    
+                                                print(23)
+                                                break                                                
                                             if inter != (-1): #Existe interseccion
                                                 if inter == LastInter:
                                                     z +=1
@@ -1248,8 +1275,10 @@ class DN_Corrector(object):
                                                     pp = 1
                                                     flag = 1
                                                     break
-                                                
-                                            inter = (round(inter[0],4), round(inter[1],4))
+                                                print(inter)
+                                                coord_a = inter[0]
+                                                coord_b = inter[1]
+                                                inter = (round(coord_a[0],4), round(coord_b[0],4))
                                             
                                             if (inter != startPointA) and (inter != endPointA) and (inter != startPointB) and (inter!= endPointB):
                                             
@@ -1393,7 +1422,7 @@ class DN_Corrector(object):
         
         idx = layer.fields().indexFromName('LV_GROUP')
         toClipped = list(layer.uniqueValues(idx))
-        #toClipped =  list(QgsVectorLayerUtils.getValues(layer,"LV_GROUP")) 
+        toClipped =  list(QgsVectorLayerUtils.getValues(layer,"LV_GROUP")) 
                 
         progress.setMaximum(len(toClipped))
         progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)

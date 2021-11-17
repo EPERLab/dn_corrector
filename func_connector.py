@@ -58,7 +58,7 @@ def loadConnect (layer, lines, loadFeatDesc):
     from scipy import spatial 
     import numpy as np
     from scipy.spatial import KDTree
-    linesPoint ,leng = nodesToTree(lines)
+    linesPoint,leng = nodesToTree(lines)
     layer.startEditing() #Activa modo edicion
     for feat in loadFeatDesc: #Lista de trafos desconectados
         point = feat.geometry().asPoint()
@@ -78,7 +78,6 @@ def loadConnect (layer, lines, loadFeatDesc):
                 radio += 0.1
             
         if existe:
-
             newPointx =  linesPoint[idx[0]][0]
             newPointy =  linesPoint[idx[0]][1]
             layer.moveVertex(newPointx, newPointy, feat.id(), 0)
@@ -87,7 +86,7 @@ def trafConnect(layer, linesFEAT, elementDesc, grafo, tolerance):
     from scipy import spatial 
     import numpy as np
     from scipy.spatial import KDTree
-    linesPoint ,leng = nodesToTree(linesFEAT)
+    linesPoint, leng = nodesToTree(linesFEAT)
     for feat in elementDesc: #Lista de trafos desconectados
 
         point = feat.geometry().asPoint()
@@ -135,13 +134,13 @@ def trafConnect(layer, linesFEAT, elementDesc, grafo, tolerance):
                 if mover:
                     layer.moveVertex(pointx, pointy, idLine, vert)#####################
             layer.commitChanges()
-def lineConnect(layer, mainFeatLines ,linesFeatDesc, grafo, tolerance):
+def lineConnect(layer, mainFeatLines, linesFeatDesc, grafo, tolerance):
     from scipy import spatial 
     import numpy as np
     from scipy.spatial import KDTree
-    mainPoints ,lengMain = nodesToTree(mainFeatLines) #imputs = feats
-    #subtPoints ,lengSubt = nodesToTree(subtLines)
-    descPoint ,lengDesc = nodesToTree(linesFeatDesc)
+    mainPoints, lengMain = nodesToTree(mainFeatLines) #imputs = feats
+    #subtPoints, lengSubt = nodesToTree(subtLines)
+    descPoint, lengDesc = nodesToTree(linesFeatDesc)
     
     mainTree = KDTree(mainPoints) #Arbol creado con lineas aereas
     descTree = KDTree(descPoint) #Arbol creado con lineas desconectadas
