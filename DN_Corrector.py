@@ -55,6 +55,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import math
+from networkx import connected_components
 
 
 class DN_Corrector(object):
@@ -560,7 +561,8 @@ class DN_Corrector(object):
             trafos_Groups = []
             cargas_Groups = []
             
-            connected_components_MT = list(nx.connected_component_subgraphs(GrafoMT))    # Determina cuales son los componentes conectados en baja tension
+            connected_components_MT = list((GrafoMT.subgraph(c) for c in connected_components(GrafoMT)))    # Determina cuales son los componentes conectados en baja tension
+            
             i=1
             for graph in connected_components_MT:
                 for edge in list( graph.edges(data=True) ):
@@ -763,8 +765,8 @@ class DN_Corrector(object):
                 
 ############################################################################
 
-        connected_components_BT = list(nx.connected_component_subgraphs(GrafoBT))    # Determina cuales son los componentes conectados en baja tension
-
+        connected_components_BT = list((GrafoBT.subgraph(c) for c in connected_components(GrafoBT)))    # Determina cuales son los componentes conectados en baja tension
+        
         trafo_group = {0:[], 1:[], 2:[]}
         BT_lines_group = {0:[], 1:[], 2:[]}
         aco_group = {0:[], 1:[], 2:[]}
